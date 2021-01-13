@@ -1,0 +1,8 @@
+{
+  "main": "./src/index.js",
+  "dependencies": {
+    "promjs": "^0.4.1",
+    "raw-loader": "^4.0.1",
+    "toucan-js": "^2.1.0"
+  }
+}
