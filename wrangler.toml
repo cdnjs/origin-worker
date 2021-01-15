@@ -1,0 +1,21 @@
+name = "origin-worker"
+type = "webpack"
+account_id = ""
+workers_dev = true
+webpack_config = "./webpack.config.js"
+
+kv_namespaces = [
+  { binding = "CDNJS_FILES", preview_id = "a" }
+]
+
+[vars]
+ENV = "dev"
+SENTRY_DSN = ""
+SENTRY_CLIENT_ID = ""
+SENTRY_CLIENT_SECRET = ""
+METRICS_URL = ""
+METRICS_CLIENT_ID = ""
+METRICS_CLIENT_SECRET = ""
+CDNJS_ORIGIN_URL = ""
+ORIGIN_CLIENT_ID = ""
+ORIGIN_CLIENT_SECRET = ""
