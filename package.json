@@ -1,6 +1,7 @@
 {
   "main": "./src/index.js",
   "dependencies": {
+    "@cloudflare/worker-sentry": "^1.0.0",
     "promjs": "^0.4.1",
     "raw-loader": "^4.0.1",
     "toucan-js": "^2.1.0"
