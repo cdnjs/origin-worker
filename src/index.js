@@ -3,6 +3,7 @@ import { handleHealthRequest } from "./health.js";
 import { handleHomepageRequest } from "./homepage.js";
 import { initSentry } from "@cloudflare/worker-sentry";
 import { SWF_XSS_REGEX, EXTS, ALIASES } from "./constants.js";
+import { fetch_from_origin } from "./origin.js";
 
 const MAX_ATTEMPTS = 3;
 
@@ -85,40 +86,6 @@ async function handleRequest(request, sentry) {
     invalid_metadata_total.inc({ env: ENV, key: kv_key, colo });
     await sendMetrics(registry);
     return err("invalid metadata");
-  }
-
-  async function fetch_from_origin(request, path, pkg, cors) {
-    // Make request headers mutable by re-constructing the Request.
-    request = new Request(request);
-
-    // Add Access headers
-    request.headers.set("CF-Access-Client-Id", ORIGIN_CLIENT_ID);
-    request.headers.set("CF-Access-Client-Secret", ORIGIN_CLIENT_SECRET);
-
-    // Add eyeball accept-encoding header
-    request.headers.set(
-      "Accept-Encoding",
-      request.headers.get("cf-client-accept-encoding")
-    );
-
-    const response = await fetch(CDNJS_ORIGIN_URL + path, request);
-    const { status, statusText, url } = response;
-    if (status >= 500) {
-      sentry.setTags({ colo, status, statusText, url });
-      sentry.captureException(new Error(`Origin returned ${status}`));
-    }
-
-    const new_response = new Response(response.body, response);
-    new_response.headers.delete("set-cookie");
-    new_response.headers.set("cf-cdnjs-via", "cfworker");
-    new_response.headers.set("X-Content-Type-Options", "nosniff");
-
-    if (cors) {
-      new_response.headers.set("Access-Control-Allow-Origin", "*");
-      new_response.headers.set("Cross-Origin-Resource-Policy", "cross-origin");
-    }
-
-    return miss(new_response, pkg);
   }
 
   try {
@@ -224,14 +191,14 @@ async function handleRequest(request, sentry) {
           // No more attempts, fetch from origin.
           sentry.setTags({ colo });
           sentry.captureException(e);
-          return fetch_from_origin(request, pathname, pkg, cors);
+          return fetch_from_origin({ colo, sentry, request, path: pathname, pkg, cors, miss });
         }
       }
     }
 
     if (value === null) {
       // KV miss, fetch from origin.
-      return fetch_from_origin(request, pathname, pkg, cors);
+      return fetch_from_origin({ colo, sentry, request, path: pathname, pkg, cors, miss });
     }
 
     // Validate metadata.

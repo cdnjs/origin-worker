@@ -1,20 +1,26 @@
-const headers = { "Cache-Control": "no-cache" };
+import { fetch_from_origin } from "./origin.js";
+
 const TEST_FILE = "hi-sven/1.1.14/index.js";
 
 async function originOk(sentry, request) {
-  const originRequest = new Request(CDNJS_ORIGIN_URL + "/ajax/libs/" + TEST_FILE + "?" + Date.now());
-
-  // Add Access headers
-  originRequest.headers.set("CF-Access-Client-Id", ORIGIN_CLIENT_ID);
-  originRequest.headers.set("CF-Access-Client-Secret", ORIGIN_CLIENT_SECRET);
-
-  const response = await fetch(originRequest);
+  const cors = false;
+  const miss = (resp) => resp;
+  const response = await fetch_from_origin({
+    colo: request.cf.colo,
+    sentry,
+    request,
+    path: "/ajax/libs/" + TEST_FILE + "?" + Date.now(),
+    pkg: "hi-sven",
+    cors,
+    miss
+  });
   if (!response.ok) {
     sentry.setTags({ colo: request.cf.colo });
     sentry.captureException(new Error(`Origin returned ${response.status}`));
-    return false
+    console.error(await response.text());
+    return false;
   } else {
-    return true
+    return true;
   }
 }
 
@@ -31,14 +37,14 @@ async function kvOk(sentry, request) {
       if (i === MAX_ATTEMPTS - 1) {
         sentry.setTags({ colo: request.cf.colo });
         sentry.captureException(e);
-        return false
+        return false;
       }
     }
   }
 }
 
 function err(msg) {
-  return new Response(msg, { headers, status: 500 });
+  return new Response(msg, { status: 500 });
 }
 
 export async function handleHealthRequest(sentry, request) {
@@ -48,5 +54,5 @@ export async function handleHealthRequest(sentry, request) {
   if (!(await kvOk(sentry, request))) {
     return err("KV not OK");
   }
-  return new Response("OK", { headers });
+  return new Response("OK");
 }
