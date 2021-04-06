@@ -6,6 +6,7 @@ import { SWF_XSS_REGEX, EXTS, ALIASES } from "./constants.js";
 import { fetch_from_origin } from "./origin.js";
 
 const MAX_ATTEMPTS = 3;
+const KILL_KV = true;
 
 addEventListener("fetch", (event) => {
   const sentry = initSentry(event, { environment: ENV });
@@ -175,6 +176,10 @@ async function handleRequest(request, sentry) {
     // KV's maximum key length limit.
     if (kv_key.length > 512) {
       return not_found({ reason: "KEY_TOO_LONG" });
+    }
+
+    if (KILL_KV) {
+      return fetch_from_origin({ colo, sentry, request, path: pathname, pkg, cors, miss });
     }
 
     // Fetch from KV and return the file if it exists.
