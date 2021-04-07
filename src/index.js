@@ -6,7 +6,7 @@ import { SWF_XSS_REGEX, EXTS, ALIASES } from "./constants.js";
 import { fetch_from_origin } from "./origin.js";
 
 const MAX_ATTEMPTS = 3;
-const KILL_KV = true;
+const KILL_KV = false;
 
 addEventListener("fetch", (event) => {
   const sentry = initSentry(event, { environment: ENV });
